@@ -507,7 +507,8 @@
                 </div>
                 <div id="room-status-box" class="hidden bg-indigo-50 p-3 rounded-xl border border-indigo-200 text-center space-y-2">
                     <p class="text-sm text-indigo-700 font-bold">ルームコード: <span id="display-room-code" class="text-indigo-900 font-mono text-lg tracking-wider bg-indigo-100 px-2 py-0.5 rounded">----</span></p>
-                    <p class="text-sm text-slate-600" id="room-member-count">参加メンバー: 1 / 6人</p>
+                    <!-- ここを5人に変更 -->
+                    <p class="text-sm text-slate-600" id="room-member-count">参加メンバー: 1 / 5人</p>
                     <button id="start-online-game-btn" onclick="startOnlineGameHost()" class="hidden w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-black py-2 rounded-lg shadow text-sm transition">オンライン対戦を開始する</button>
                 </div>
             </div>
@@ -600,7 +601,6 @@
             <div class="mt-4 pt-4 border-t border-slate-200"><button onclick="closeHistoryModal()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-3 rounded-xl">閉じる</button></div>
         </div>
     </div>
-
     <!-- 全プレイヤー所持金推移モーダル -->
     <div id="all-history-modal" class="fixed inset-0 modal-bg hidden flex justify-center items-center z-[110] p-4">
         <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-4xl slide-in relative flex flex-col h-[70vh] border-t-8 border-teal-500">
@@ -659,7 +659,8 @@
         };
         let goldenEmpStats = Array(25).fill(0).map(() => ({sum: 0, count: 0, avg: 0}));
 
-        let aiStrategies = ['adaptive', 'adaptive', 'adaptive', 'adaptive', 'adaptive', 'adaptive'];
+        // 要素を5つに変更（5人対戦用）
+        let aiStrategies = ['adaptive', 'adaptive', 'adaptive', 'adaptive', 'adaptive'];
         const strategyLabels = { 'adaptive': '自律適応型', 'outsource': '完全外注(派遣)', 'fulltime': '完全正社員' };
 
         const players = [];
@@ -801,12 +802,12 @@
 
         function resetGameState() {
             players.length = 0;
+            // プレイヤーを5人に変更（競合Eを削除）
             players.push({ id: 0, name: 'あなた (Player)', money: initialMoney, employees: initialEmployees, temps: 0, isDefaulter: false, isCPU: false, history: [], moneyHistory: [initialMoney] });
             players.push({ id: 1, name: '競合A (CPU)', money: initialMoney, employees: initialEmployees, temps: 0, isDefaulter: false, isCPU: true, history: [], moneyHistory: [initialMoney] });
             players.push({ id: 2, name: '競合B (CPU)', money: initialMoney, employees: initialEmployees, temps: 0, isDefaulter: false, isCPU: true, history: [], moneyHistory: [initialMoney] });
             players.push({ id: 3, name: '競合C (CPU)', money: initialMoney, employees: initialEmployees, temps: 0, isDefaulter: false, isCPU: true, history: [], moneyHistory: [initialMoney] });
             players.push({ id: 4, name: '競合D (CPU)', money: initialMoney, employees: initialEmployees, temps: 0, isDefaulter: false, isCPU: true, history: [], moneyHistory: [initialMoney] });
-
             
             softResetGameState();
             
@@ -1001,6 +1002,7 @@
             const container = document.getElementById('cpu-strat-settings-container');
             if(!container) return;
             container.innerHTML = '';
+            // 5人に変更
             for(let i=0; i<5; i++) {
                 const p = players[i];
                 container.innerHTML += `
@@ -1019,6 +1021,7 @@
         }
 
         window.updateStrategies = function() {
+            // 5人に変更
             for(let i = 0; i < 5; i++) { 
                 const el = document.getElementById(`strat-cpu-${i}`);
                 if(el) aiStrategies[i] = el.value; 
@@ -1322,7 +1325,7 @@
             modal.classList.remove('hidden');
 
             const ctx = document.getElementById('all-history-chart').getContext('2d');
-            const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+            const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6']; // 5色に変更
 
             const datasets = players.map((p, i) => {
                 return {
@@ -1366,7 +1369,6 @@
         window.closeAllHistoryModal = function() {
             document.getElementById('all-history-modal').classList.add('hidden');
         };
-
         window.startGameLocal = function() {
             document.getElementById('welcome-modal').classList.add('hidden');
             if (!isOnlineMode) {
@@ -2258,6 +2260,7 @@
             try {
                 await new Promise(resolve => setTimeout(resolve, 100));
                 const state = { turn: currentTurn, economy: currentEconomy, players: players }; const rng = Math.random; 
+                // ループ回数を5人に変更
                 for (let i = 0; i < 5; i++) {
                     if (players[i].isCPU && !players[i].isDefaulter) {
                         let action = { project: 'none', amount: 0 };
@@ -2277,8 +2280,8 @@
         async function handleResultConfirmed(playerIndex) {
             resultConfirmations[playerIndex] = true;
             let allReady = true;
+            // ループ回数を5人に変更
             for(let i=0; i<5; i++) {
-                // 破産したプレイヤーからの確認は待たない
                 if(!players[i].isDefaulter && !players[i].isCPU && !resultConfirmations[i]) {
                     allReady = false;
                 }
@@ -2292,7 +2295,6 @@
             }
         }
 
-        // 雇用フェーズ開始時にフラグを確実に初期化
         function startHiringPhase() {
             hiringInputs = {}; 
             isProcessingHiring = false;
@@ -2307,6 +2309,7 @@
             if (isProcessingHiring) return; 
             
             let allReady = true;
+            // ループ回数を5人に変更
             for (let i = 0; i < 5; i++) {
                 if (!players[i].isCPU && !players[i].isDefaulter && typeof hiringInputs[i] === 'undefined') {
                     allReady = false;
@@ -2316,6 +2319,7 @@
             if (allReady) {
                 isProcessingHiring = true; 
                 
+                // ループ回数を5人に変更
                 for (let i = 0; i < 5; i++) {
                     if (players[i].isCPU && !players[i].isDefaulter && winningResults[i]) {
                         hiringInputs[i] = cpuHiring({players: players, economy: currentEconomy, turn: currentTurn}, i, winningResults[i].project, totalTurns - currentTurn + 1, Math.random);
@@ -2324,6 +2328,7 @@
                     }
                 }
                 
+                // ループ回数を5人に変更
                 for (let i = 0; i < 5; i++) {
                     players[i].employees += hiringInputs[i].f;
                     players[i].temps += hiringInputs[i].t;
@@ -2344,6 +2349,7 @@
             hideCalculatingModal();
 
             winningResults = {}; const projBids = { large: [], medium: [], small: [] };
+            // ループ回数を5人に変更
             for (let i = 0; i < 5; i++) { const b = bidInputs[i]; if (b && b.project !== 'none') projBids[b.project].push({ playerId: i, amount: b.amount }); }
             const resultsData = { large: null, medium: null, small: null };
             const avgData = { large: null, medium: null, small: null };
@@ -2382,7 +2388,8 @@
                 document.getElementById(`res-${pKey}-content`).innerHTML = htmlContent;
             }
             
-            for (let i = 0; i < 6; i++) { 
+            // ループ回数を5人に変更
+            for (let i = 0; i < 5; i++) { 
                 if (players[i].history.length < currentTurn) { 
                     let b = bidInputs[i];
                     if (b && b.project && b.project !== 'none') {
@@ -2549,6 +2556,7 @@
                 players[myPlayerIndex].employees += myHire.f; 
                 players[myPlayerIndex].temps += myHire.t;
                 
+                // ループ回数を5人に変更
                 for (let i = 0; i < 5; i++) {
                     if (i !== myPlayerIndex) {
                         if (winningResults[i]) {
@@ -2570,6 +2578,7 @@
             let tieCounts = {};
             const projBids = { large: [], medium: [], small: [] };
             
+            // ループ回数を5人に変更
             for (let i = 0; i < 5; i++) { 
                 const b = bidInputs[i]; 
                 if (b && b.project !== 'none') {
@@ -2588,6 +2597,7 @@
 
             let turnProfits = [];
 
+            // ループ回数を5人に変更
             for (let i = 0; i < 5; i++) {
                 const p = players[i]; 
                 
@@ -2814,7 +2824,6 @@
             if (!isOnlineMode || myPlayerIndex === 0) {
                 currentTurn++;
                 
-                // [FIX] ターン進行と同時に状態フラグをリセットし、前ターンの非同期キャッシュによる早送りを防ぐ
                 bidInputs = {};
                 hiringInputs = {};
                 resultConfirmations = {};
@@ -2863,7 +2872,7 @@
             container.innerHTML = '';
 
             sorted.forEach((p, index) => {
-                const isMe = p.id === myPlayerIndex, isBankrupt = p.money < 0; const bg = index === 0 ? 'bg-gradient-to-r from-yellow-100 to-amber-50 border-2 border-yellow-300 shadow-md scale-105 z-10' : 'bg-slate-50 border border-slate-200'; const rankText = index === 0 ? '🏆 1位' : (index === 1 ? '🥈 2位' : (index === 2 ? '🥉 3位' : (index === 3 ? '4位' : (index === 4 ? '5位'))));
+                const isMe = p.id === myPlayerIndex, isBankrupt = p.money < 0; const bg = index === 0 ? 'bg-gradient-to-r from-yellow-100 to-amber-50 border-2 border-yellow-300 shadow-md scale-105 z-10' : 'bg-slate-50 border border-slate-200'; const rankText = index === 0 ? '🏆 1位' : (index === 1 ? '🥈 2位' : (index === 2 ? '🥉 3位' : (index === 3 ? '4位' : '5位')));
                 container.innerHTML += `<div class="flex justify-between items-center p-4 rounded-xl ${bg} ${isMe ? 'ring-2 ring-blue-400' : ''} ${isBankrupt ? 'opacity-60' : ''}"><div class="text-xl font-black flex items-center gap-2"><span>${rankText}</span><span class="text-lg ${isMe ? 'text-blue-700' : 'text-slate-700'}">${p.name}</span>${isBankrupt ? '<span class="text-[10px] bg-red-600 text-white px-2 py-1 rounded-full font-bold ml-1">破産</span>' : ''}</div><div class="text-3xl font-black font-mono tracking-tighter ${p.money < 0 ? 'text-red-600' : 'text-slate-800'}">${p.money}<span class="text-lg">Y</span></div></div>`;
             });
 
@@ -3037,6 +3046,7 @@
                         const { tempId, name } = payload.payload;
                         
                         let slot = -1;
+                        // ループ回数を5人に変更
                         for (let i = 1; i < 5; i++) {
                             if (players[i].isCPU) {
                                 slot = i;
@@ -3078,6 +3088,7 @@
                         myPlayerIndex = payload.payload.slot;
                         const snapshot = payload.payload.snapshot;
                         
+                        // ループ回数を5人に変更
                         for (let i = 0; i < 5; i++) {
                             players[i].name = snapshot[i].name;
                             players[i].isCPU = snapshot[i].isCPU;
@@ -3123,6 +3134,7 @@
                         renderPlayers();
                     } else if (isOnlineMode) {
                         const snapshot = payload.payload.snapshot;
+                        // ループ回数を5人に変更
                         for (let i = 0; i < 5; i++) {
                             players[i].name = snapshot[i].name;
                             players[i].isCPU = snapshot[i].isCPU;
@@ -3210,6 +3222,7 @@
                         
                         hiringInputs = incomingHiringInputs;
                         
+                        // ループ回数を5人に変更
                         for (let i = 0; i < 5; i++) {
                             if (hiringInputs[i]) {
                                 players[i].employees += hiringInputs[i].f;
@@ -3228,7 +3241,6 @@
                         
                         currentTurn = turn;
 
-                        // [FIX] クライアント側でもターン進行と同時に状態フラグをリセット
                         bidInputs = {};
                         hiringInputs = {};
                         resultConfirmations = {};
@@ -3249,7 +3261,6 @@
                     renderPlayers();
                     currentTurn = 1;
 
-                    // [FIX] オンライン開始時にも状態フラグをリセット
                     bidInputs = {};
                     hiringInputs = {};
                     resultConfirmations = {};
@@ -3283,7 +3294,6 @@
                 const rand = Math.random() * 100;
                 const nextEconomy = rand < economyProbability ? 'A' : 'B';
                 
-                // [FIX] オンライン開始時にも状態フラグをリセット
                 bidInputs = {};
                 hiringInputs = {};
                 resultConfirmations = {};
@@ -3300,6 +3310,7 @@
             if (isProcessingBids) return; 
 
             let allReady = true;
+            // ループ回数を5人に変更
             for (let i = 0; i < 5; i++) {
                 if (!players[i].isDefaulter && !players[i].isCPU && !bidInputs[i]) {
                     allReady = false;
@@ -3310,6 +3321,7 @@
                 isProcessingBids = true; 
                 
                 const state = { turn: currentTurn, economy: currentEconomy, players: players };
+                // ループ回数を5人に変更
                 for (let i = 0; i < 5; i++) {
                     if (players[i].isCPU && !players[i].isDefaulter) {
                         let action = { project: 'none', amount: 0 };
@@ -3342,5 +3354,4 @@
         initCharts();
         loadHistoricalData();
     </script>
-</body>
 </html>
