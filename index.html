@@ -279,14 +279,14 @@
         </section>
     </main>
 
+    <!-- 修正点：自動カウントダウンを廃止し、確認ボタンを設置 -->
     <div id="turn-profit-modal" class="fixed inset-0 modal-bg hidden flex justify-center items-center z-[110] p-4">
         <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm text-center border-t-8 border-yellow-400 flex flex-col slide-in">
             <h2 id="tp-title" class="text-xl font-black text-slate-800 mb-4">第 <span id="tp-turn"></span> ターン 収益結果</h2>
             <div id="tp-content" class="space-y-2 mb-6 text-left"></div>
-            <div class="text-4xl font-black text-slate-300" id="tp-countdown">4</div>
+            <button id="close-profit-btn" class="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold py-3 rounded-xl shadow-lg transition-all border-b-4 border-yellow-500 flex justify-center items-center gap-2">確認して次へ進む</button>
         </div>
     </div>
-
     <!-- 数値設定モーダル -->
     <div id="game-settings-modal" class="fixed inset-0 modal-bg hidden flex justify-center items-center z-[90] p-4">
         <div class="bg-white p-6 md:p-8 rounded-2xl shadow-2xl w-full max-w-3xl slide-in relative border-t-8 border-fuchsia-600 flex flex-col max-h-[90vh]">
@@ -507,7 +507,6 @@
                 </div>
                 <div id="room-status-box" class="hidden bg-indigo-50 p-3 rounded-xl border border-indigo-200 text-center space-y-2">
                     <p class="text-sm text-indigo-700 font-bold">ルームコード: <span id="display-room-code" class="text-indigo-900 font-mono text-lg tracking-wider bg-indigo-100 px-2 py-0.5 rounded">----</span></p>
-                    <!-- ここを5人に変更 -->
                     <p class="text-sm text-slate-600" id="room-member-count">参加メンバー: 1 / 5人</p>
                     <button id="start-online-game-btn" onclick="startOnlineGameHost()" class="hidden w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-black py-2 rounded-lg shadow text-sm transition">オンライン対戦を開始する</button>
                 </div>
@@ -601,7 +600,7 @@
             <div class="mt-4 pt-4 border-t border-slate-200"><button onclick="closeHistoryModal()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-3 rounded-xl">閉じる</button></div>
         </div>
     </div>
-    <!-- 全プレイヤー所持金推移モーダル -->
+    
     <div id="all-history-modal" class="fixed inset-0 modal-bg hidden flex justify-center items-center z-[110] p-4">
         <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-4xl slide-in relative flex flex-col h-[70vh] border-t-8 border-teal-500">
             <button onclick="closeAllHistoryModal()" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 font-bold z-10">✕</button>
@@ -650,6 +649,9 @@
         let isProcessingBids = false;
         let isProcessingHiring = false;
         let resultConfirmations = {};
+        
+        // 追加: 各ターン終了時の「次へ」進行を同期するための確認状態保持オブジェクト
+        let profitConfirmations = {};
 
         let marketStats = { A: {}, B: {} };
         let playerStats = { A: {}, B: {} };
@@ -659,7 +661,6 @@
         };
         let goldenEmpStats = Array(25).fill(0).map(() => ({sum: 0, count: 0, avg: 0}));
 
-        // 要素を5つに変更（5人対戦用）
         let aiStrategies = ['adaptive', 'adaptive', 'adaptive', 'adaptive', 'adaptive'];
         const strategyLabels = { 'adaptive': '自律適応型', 'outsource': '完全外注(派遣)', 'fulltime': '完全正社員' };
 
@@ -761,6 +762,7 @@
             isProcessingBids = false;
             isProcessingHiring = false;
             resultConfirmations = {};
+            profitConfirmations = {}; // 同期用変数のリセット追加
             pendingGameLogs = [];
 
             for (let i = 0; i < players.length; i++) {
@@ -802,7 +804,6 @@
 
         function resetGameState() {
             players.length = 0;
-            // プレイヤーを5人に変更（競合Eを削除）
             players.push({ id: 0, name: 'あなた (Player)', money: initialMoney, employees: initialEmployees, temps: 0, isDefaulter: false, isCPU: false, history: [], moneyHistory: [initialMoney] });
             players.push({ id: 1, name: '競合A (CPU)', money: initialMoney, employees: initialEmployees, temps: 0, isDefaulter: false, isCPU: true, history: [], moneyHistory: [initialMoney] });
             players.push({ id: 2, name: '競合B (CPU)', money: initialMoney, employees: initialEmployees, temps: 0, isDefaulter: false, isCPU: true, history: [], moneyHistory: [initialMoney] });
@@ -960,7 +961,6 @@
                 document.getElementById('game-settings-modal').classList.add('hidden');
             }
         }
-
         function updateProjectCardsUI() {
             ['large', 'medium', 'small'].forEach(key => {
                 document.getElementById(`labor-${key}`).textContent = `${projects[key].labor}`;
@@ -1002,7 +1002,6 @@
             const container = document.getElementById('cpu-strat-settings-container');
             if(!container) return;
             container.innerHTML = '';
-            // 5人に変更
             for(let i=0; i<5; i++) {
                 const p = players[i];
                 container.innerHTML += `
@@ -1021,7 +1020,6 @@
         }
 
         window.updateStrategies = function() {
-            // 5人に変更
             for(let i = 0; i < 5; i++) { 
                 const el = document.getElementById(`strat-cpu-${i}`);
                 if(el) aiStrategies[i] = el.value; 
@@ -1111,8 +1109,8 @@
                             { 
                                 label: projects[key].name + ' 落札価格', 
                                 data: [], 
-                                borderColor: projects[key].color, 
-                                backgroundColor: projects[key].color, 
+                                borderColor: projects[key].color || '#3b82f6', 
+                                backgroundColor: projects[key].color || '#3b82f6', 
                                 pointBackgroundColor: [], 
                                 pointBorderColor: '#fff', 
                                 pointRadius: 6, 
@@ -1152,7 +1150,7 @@
             title.textContent = `${projects[projKey].name} 落札価格推移`;
             
             const legendColorBox = document.getElementById('legend-color-box');
-            if(legendColorBox) legendColorBox.style.backgroundColor = projects[projKey].color;
+            if(legendColorBox) legendColorBox.style.backgroundColor = projects[projKey].color || '#3b82f6';
 
             content.classList.remove('border-red-500', 'border-blue-500', 'border-green-500');
             if (projKey === 'large') content.classList.add('border-red-500');
@@ -1325,7 +1323,7 @@
             modal.classList.remove('hidden');
 
             const ctx = document.getElementById('all-history-chart').getContext('2d');
-            const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6']; // 5色に変更
+            const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6']; 
 
             const datasets = players.map((p, i) => {
                 return {
@@ -1369,6 +1367,7 @@
         window.closeAllHistoryModal = function() {
             document.getElementById('all-history-modal').classList.add('hidden');
         };
+
         window.startGameLocal = function() {
             document.getElementById('welcome-modal').classList.add('hidden');
             if (!isOnlineMode) {
@@ -1382,6 +1381,7 @@
             bidInputs = {};
             hiringInputs = {};
             resultConfirmations = {};
+            profitConfirmations = {};
             isProcessingBids = false;
             isProcessingHiring = false;
 
@@ -2100,81 +2100,47 @@
             const futureTurns = Math.max(0, turnsLeft - 1);
 
             const history = Array.isArray(p.history) ? p.history : [];
-
             const recentHistory = history
                 .slice(-8)
-                .filter(h =>
-                    h &&
-                    h.project &&
-                    projects[h.project] &&
-                    Number.isFinite(projects[h.project].labor)
-                );
+                .filter(h => h && h.project && projects[h.project] && Number.isFinite(projects[h.project].labor));
 
             const totalPastTurns = history.length;
             const pastWins = recentHistory.length;
 
             let winRate = 0;
-            if (totalPastTurns > 0) {
-                winRate = pastWins / Math.min(totalPastTurns, 8);
-            }
+            if (totalPastTurns > 0) { winRate = pastWins / Math.min(totalPastTurns, 8); }
             winRate = Math.max(0, Math.min(1, winRate));
 
             let avgWonLabor = 0;
             if (recentHistory.length > 0) {
                 let laborSum = 0;
-                recentHistory.forEach(h => {
-                    laborSum += projects[h.project].labor;
-                });
+                recentHistory.forEach(h => { laborSum += projects[h.project].labor; });
                 avgWonLabor = laborSum / recentHistory.length;
             } else {
                 avgWonLabor = reqP;
             }
 
             const minimumWinRate = 0.25;
-            const effectiveWinRate =
-                totalPastTurns < 3
-                    ? Math.max(winRate, minimumWinRate)
-                    : winRate;
-
-            const expectedFutureLaborPerTurn =
-                avgWonLabor * effectiveWinRate;
+            const effectiveWinRate = totalPastTurns < 3 ? Math.max(winRate, minimumWinRate) : winRate;
+            const expectedFutureLaborPerTurn = avgWonLabor * effectiveWinRate;
 
             let expectedFutureDemand = 0;
-            if (futureTurns > 0) {
-                expectedFutureDemand =
-                    expectedFutureLaborPerTurn;
-            }
+            if (futureTurns > 0) { expectedFutureDemand = expectedFutureLaborPerTurn; }
 
             let targetEmployees = Math.floor(expectedFutureDemand);
             targetEmployees = Math.max(0, targetEmployees);
 
-            let desiredFulltime =
-                Math.max(0, targetEmployees - p.employees);
-
-            desiredFulltime =
-                Math.min(desiredFulltime, Math.ceil(shortageP / fullP));
+            let desiredFulltime = Math.max(0, targetEmployees - p.employees);
+            desiredFulltime = Math.min(desiredFulltime, Math.ceil(shortageP / fullP));
 
             const utilizationThreshold = fCost / Math.max(1, tCost);
-
-            const expectedUses =
-                futureTurns * effectiveWinRate;
-
+            const expectedUses = futureTurns * effectiveWinRate;
             const currentFixedCost = p.employees * fCost;
-            const reserveTurns = Math.min(
-                3,
-                Math.max(2, futureTurns)
-            );
-
-            const cashReserve =
-                currentFixedCost * reserveTurns;
+            const reserveTurns = Math.min(3, Math.max(2, futureTurns));
+            const cashReserve = currentFixedCost * reserveTurns;
 
             let fulltimeCount = 0;
-
-            const maxFulltime =
-                Math.min(
-                    desiredFulltime,
-                    Math.ceil(shortageP / fullP)
-                );
+            const maxFulltime = Math.min(desiredFulltime, Math.ceil(shortageP / fullP));
 
             let targetEmpFromData = 0;
             if (state.turn && goldenEmpStats[state.turn] && goldenEmpStats[state.turn].count > 5) {
@@ -2182,11 +2148,7 @@
             }
 
             for (let i = 0; i < maxFulltime; i++) {
-                const utilization =
-                    futureTurns > 0
-                        ? expectedUses / futureTurns
-                        : 0;
-
+                const utilization = futureTurns > 0 ? expectedUses / futureTurns : 0;
                 const currentProjectedEmp = p.employees + fulltimeCount;
                 
                 let currentThreshold = utilizationThreshold;
@@ -2195,64 +2157,28 @@
                 }
 
                 const economicallyReasonable = utilization >= currentThreshold;
+                const projectedFixedCost = (currentProjectedEmp + 1) * fCost;
+                const financiallySafe = p.money >= projectedFixedCost * reserveTurns + cashReserve;
+                const enoughTime = futureTurns >= 3;
 
-                const projectedFixedCost =
-                    (currentProjectedEmp + 1) * fCost;
-
-                const financiallySafe =
-                    p.money >=
-                    projectedFixedCost * reserveTurns +
-                    cashReserve;
-
-                const enoughTime =
-                    futureTurns >= 3;
-
-                if (
-                    economicallyReasonable &&
-                    financiallySafe &&
-                    enoughTime
-                ) {
+                if (economicallyReasonable && financiallySafe && enoughTime) {
                     fulltimeCount++;
                 } else {
                     break;
                 }
             }
 
-            const laborCoveredByFulltime =
-                fulltimeCount * fullP;
-
-            const remainingShortage =
-                Math.max(
-                    0,
-                    shortageP - laborCoveredByFulltime
-                );
-
-            const tempCount =
-                Math.ceil(
-                    remainingShortage / tempP
-                );
-
-            const totalLabor =
-                p.employees * fullP +
-                fulltimeCount * fullP +
-                tempCount * tempP;
+            const laborCoveredByFulltime = fulltimeCount * fullP;
+            const remainingShortage = Math.max(0, shortageP - laborCoveredByFulltime);
+            const tempCount = Math.ceil(remainingShortage / tempP);
+            const totalLabor = p.employees * fullP + fulltimeCount * fullP + tempCount * tempP;
 
             if (totalLabor < reqP) {
-                const additionalTemp =
-                    Math.ceil(
-                        (reqP - totalLabor) / tempP
-                    );
-
-                return {
-                    f: fulltimeCount,
-                    t: tempCount + additionalTemp
-                };
+                const additionalTemp = Math.ceil((reqP - totalLabor) / tempP);
+                return { f: fulltimeCount, t: tempCount + additionalTemp };
             }
 
-            return {
-                f: fulltimeCount,
-                t: tempCount
-            };
+            return { f: fulltimeCount, t: tempCount };
         }
 
         async function decideCPUBids() {
@@ -2260,7 +2186,6 @@
             try {
                 await new Promise(resolve => setTimeout(resolve, 100));
                 const state = { turn: currentTurn, economy: currentEconomy, players: players }; const rng = Math.random; 
-                // ループ回数を5人に変更
                 for (let i = 0; i < 5; i++) {
                     if (players[i].isCPU && !players[i].isDefaulter) {
                         let action = { project: 'none', amount: 0 };
@@ -2280,7 +2205,6 @@
         async function handleResultConfirmed(playerIndex) {
             resultConfirmations[playerIndex] = true;
             let allReady = true;
-            // ループ回数を5人に変更
             for(let i=0; i<5; i++) {
                 if(!players[i].isDefaulter && !players[i].isCPU && !resultConfirmations[i]) {
                     allReady = false;
@@ -2298,7 +2222,6 @@
         function startHiringPhase() {
             hiringInputs = {}; 
             isProcessingHiring = false;
-            
             hideCalculatingModal();
             proceedToHiring();
         }
@@ -2309,7 +2232,6 @@
             if (isProcessingHiring) return; 
             
             let allReady = true;
-            // ループ回数を5人に変更
             for (let i = 0; i < 5; i++) {
                 if (!players[i].isCPU && !players[i].isDefaulter && typeof hiringInputs[i] === 'undefined') {
                     allReady = false;
@@ -2319,7 +2241,6 @@
             if (allReady) {
                 isProcessingHiring = true; 
                 
-                // ループ回数を5人に変更
                 for (let i = 0; i < 5; i++) {
                     if (players[i].isCPU && !players[i].isDefaulter && winningResults[i]) {
                         hiringInputs[i] = cpuHiring({players: players, economy: currentEconomy, turn: currentTurn}, i, winningResults[i].project, totalTurns - currentTurn + 1, Math.random);
@@ -2328,7 +2249,6 @@
                     }
                 }
                 
-                // ループ回数を5人に変更
                 for (let i = 0; i < 5; i++) {
                     players[i].employees += hiringInputs[i].f;
                     players[i].temps += hiringInputs[i].t;
@@ -2339,7 +2259,6 @@
                 }
                 
                 hideCalculatingModal();
-                
                 renderPlayers();
                 processRewardsAndPayments();
             }
@@ -2349,7 +2268,6 @@
             hideCalculatingModal();
 
             winningResults = {}; const projBids = { large: [], medium: [], small: [] };
-            // ループ回数を5人に変更
             for (let i = 0; i < 5; i++) { const b = bidInputs[i]; if (b && b.project !== 'none') projBids[b.project].push({ playerId: i, amount: b.amount }); }
             const resultsData = { large: null, medium: null, small: null };
             const avgData = { large: null, medium: null, small: null };
@@ -2388,7 +2306,6 @@
                 document.getElementById(`res-${pKey}-content`).innerHTML = htmlContent;
             }
             
-            // ループ回数を5人に変更
             for (let i = 0; i < 5; i++) { 
                 if (players[i].history.length < currentTurn) { 
                     let b = bidInputs[i];
@@ -2456,7 +2373,7 @@
             let myHire = { f: 0, t: 0 };
             
             if (players[myPlayerIndex].isDefaulter) {
-                
+                // do nothing
             }
             else if (winningResults[myPlayerIndex]) {
                 const p = winningResults[myPlayerIndex]; const proj = projects[p.project]; const reqLabor = proj.labor; 
@@ -2556,7 +2473,6 @@
                 players[myPlayerIndex].employees += myHire.f; 
                 players[myPlayerIndex].temps += myHire.t;
                 
-                // ループ回数を5人に変更
                 for (let i = 0; i < 5; i++) {
                     if (i !== myPlayerIndex) {
                         if (winningResults[i]) {
@@ -2578,7 +2494,6 @@
             let tieCounts = {};
             const projBids = { large: [], medium: [], small: [] };
             
-            // ループ回数を5人に変更
             for (let i = 0; i < 5; i++) { 
                 const b = bidInputs[i]; 
                 if (b && b.project !== 'none') {
@@ -2597,7 +2512,6 @@
 
             let turnProfits = [];
 
-            // ループ回数を5人に変更
             for (let i = 0; i < 5; i++) {
                 const p = players[i]; 
                 
@@ -2778,6 +2692,7 @@
             await showTurnProfitAndNext(turnProfits, allBankrupt);
         }
 
+        // 修正点：確認ボタンを用いた進行への変更
         async function showTurnProfitAndNext(turnProfits, allBankrupt) {
             const modal = document.getElementById('turn-profit-modal');
             const tpTitle = document.getElementById('tp-title');
@@ -2799,23 +2714,59 @@
             }).join('');
             
             modal.classList.remove('hidden');
-            let count = 4;
-            const countdownEl = document.getElementById('tp-countdown');
-            countdownEl.textContent = count;
 
+            const closeBtn = document.getElementById('close-profit-btn');
+            
             await new Promise(resolve => {
-                const timer = setInterval(() => {
-                    count--;
-                    if (count > 0) {
-                        countdownEl.textContent = count;
-                    } else {
-                        clearInterval(timer);
+                if (players[myPlayerIndex].isDefaulter) {
+                    modal.classList.add('hidden');
+                    resolve();
+                } else {
+                    let handled = false;
+                    const handler = () => {
+                        if (handled) return;
+                        handled = true;
+                        closeBtn.removeEventListener('click', handler);
                         modal.classList.add('hidden');
                         resolve();
-                    }
-                }, 1000);
+                    };
+                    closeBtn.addEventListener('click', handler);
+                }
             });
 
+            if (isOnlineMode) {
+                showCalculatingModal('待機中...', '他のプレイヤーの確認を待っています。');
+                if (myPlayerIndex !== 0) {
+                    await onlineChannel.send({ type: 'broadcast', event: 'profit_confirmed', payload: { playerIndex: myPlayerIndex, turn: currentTurn } });
+                } else {
+                    await handleProfitConfirmed(0, allBankrupt);
+                }
+            } else {
+                executeNextOrEnd(allBankrupt);
+            }
+        }
+
+        // 修正点：収益確認の同期処理
+        async function handleProfitConfirmed(playerIndex, allBankruptParam) {
+            profitConfirmations[playerIndex] = true;
+            let allReady = true;
+            for(let i=0; i<5; i++) {
+                if(!players[i].isDefaulter && !players[i].isCPU && !profitConfirmations[i]) {
+                    allReady = false;
+                }
+            }
+            if (allReady) {
+                profitConfirmations = {}; 
+                const allBankrupt = players.every(p => p.isDefaulter);
+                if (onlineChannel) {
+                    await onlineChannel.send({ type: 'broadcast', event: 'start_next_or_end', payload: { turn: currentTurn, allBankrupt: allBankrupt } });
+                }
+                executeNextOrEnd(allBankrupt);
+            }
+        }
+
+        async function executeNextOrEnd(allBankrupt) {
+            hideCalculatingModal();
             if (allBankrupt || currentTurn >= totalTurns) {
                 endGame();
                 return;
@@ -2827,6 +2778,7 @@
                 bidInputs = {};
                 hiringInputs = {};
                 resultConfirmations = {};
+                profitConfirmations = {}; // 初期化
                 isProcessingBids = false;
                 isProcessingHiring = false;
 
@@ -3039,6 +2991,8 @@
                         checkAndTriggerProcessBids();
                         await handleResultConfirmed(playerIndex);
                         await handleHiringCompleted(playerIndex, {f:0, t:0});
+                        // 代行CPUとして同期進行させるため、利益確認済みにする
+                        await handleProfitConfirmed(playerIndex, false);
                     }
                 })
                 .on('broadcast', { event: 'request_join' }, async payload => {
@@ -3046,7 +3000,6 @@
                         const { tempId, name } = payload.payload;
                         
                         let slot = -1;
-                        // ループ回数を5人に変更
                         for (let i = 1; i < 5; i++) {
                             if (players[i].isCPU) {
                                 slot = i;
@@ -3088,7 +3041,6 @@
                         myPlayerIndex = payload.payload.slot;
                         const snapshot = payload.payload.snapshot;
                         
-                        // ループ回数を5人に変更
                         for (let i = 0; i < 5; i++) {
                             players[i].name = snapshot[i].name;
                             players[i].isCPU = snapshot[i].isCPU;
@@ -3134,7 +3086,6 @@
                         renderPlayers();
                     } else if (isOnlineMode) {
                         const snapshot = payload.payload.snapshot;
-                        // ループ回数を5人に変更
                         for (let i = 0; i < 5; i++) {
                             players[i].name = snapshot[i].name;
                             players[i].isCPU = snapshot[i].isCPU;
@@ -3145,7 +3096,7 @@
                     }
                 })
                 .on('broadcast', { event: 'state_sync' }, payload => {
-                    
+                    // nop
                 })
                 .on('broadcast', { event: 'game_settings_updated' }, payload => {
                     if (isOnlineMode && myPlayerIndex !== 0) {
@@ -3222,7 +3173,6 @@
                         
                         hiringInputs = incomingHiringInputs;
                         
-                        // ループ回数を5人に変更
                         for (let i = 0; i < 5; i++) {
                             if (hiringInputs[i]) {
                                 players[i].employees += hiringInputs[i].f;
@@ -3232,6 +3182,21 @@
                         hideCalculatingModal();
                         renderPlayers();
                         processRewardsAndPayments();
+                    }
+                })
+                // 修正点：利益確認同期イベントの追加
+                .on('broadcast', { event: 'profit_confirmed' }, async payload => {
+                    if (myPlayerIndex === 0) {
+                        const { playerIndex, turn } = payload.payload;
+                        if (turn && turn !== currentTurn) return;
+                        await handleProfitConfirmed(playerIndex, false);
+                    }
+                })
+                .on('broadcast', { event: 'start_next_or_end' }, payload => {
+                    if (myPlayerIndex !== 0) {
+                        const { turn, allBankrupt } = payload.payload;
+                        if (turn && turn !== currentTurn) return;
+                        executeNextOrEnd(allBankrupt);
                     }
                 })
                 .on('broadcast', { event: 'start_coin_toss' }, async payload => {
@@ -3244,6 +3209,7 @@
                         bidInputs = {};
                         hiringInputs = {};
                         resultConfirmations = {};
+                        profitConfirmations = {};
                         isProcessingBids = false;
                         isProcessingHiring = false;
 
@@ -3264,6 +3230,7 @@
                     bidInputs = {};
                     hiringInputs = {};
                     resultConfirmations = {};
+                    profitConfirmations = {};
                     isProcessingBids = false;
                     isProcessingHiring = false;
 
@@ -3284,7 +3251,6 @@
 
         function startPeriodicSync() {
             if (periodicSyncTimer) clearInterval(periodicSyncTimer);
-            
         }
 
         window.startOnlineGameHost = async function() {
@@ -3297,6 +3263,7 @@
                 bidInputs = {};
                 hiringInputs = {};
                 resultConfirmations = {};
+                profitConfirmations = {};
                 isProcessingBids = false;
                 isProcessingHiring = false;
 
@@ -3310,7 +3277,6 @@
             if (isProcessingBids) return; 
 
             let allReady = true;
-            // ループ回数を5人に変更
             for (let i = 0; i < 5; i++) {
                 if (!players[i].isDefaulter && !players[i].isCPU && !bidInputs[i]) {
                     allReady = false;
@@ -3321,7 +3287,6 @@
                 isProcessingBids = true; 
                 
                 const state = { turn: currentTurn, economy: currentEconomy, players: players };
-                // ループ回数を5人に変更
                 for (let i = 0; i < 5; i++) {
                     if (players[i].isCPU && !players[i].isDefaulter) {
                         let action = { project: 'none', amount: 0 };
@@ -3354,4 +3319,5 @@
         initCharts();
         loadHistoricalData();
     </script>
+</body>
 </html>
